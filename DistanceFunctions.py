@@ -32,6 +32,15 @@ def d_pP(p,P,prm):
 # Distance from sample to sample
 def D_PP(P1,P2,prm):
     
+    # Drops minimum information
+    if 'min' in P1['search']:
+        P1 = P1.copy()
+        P1 = P1.loc[P1['search'] == ' max']
+
+    if 'min' in P2['search']:
+        P2 = P2.copy()
+        P2 = P2.loc[P2['search'] == ' max']
+
     q2 = prm['q2']
     # First sample distance
     out1 = 0
@@ -50,6 +59,15 @@ def D_PP(P1,P2,prm):
 
 # Proportional distance from sample to sample
 def D_PPpr(P1,P2,prm):
+    
+        # Drops minimum information
+    if 'min' in P1['search']:
+        P1 = P1.copy()
+        P1 = P1.loc[P1['search'] == ' max']
+
+    if 'min' in P2['search']:
+        P2 = P2.copy()
+        P2 = P2.loc[P2['search'] == ' max']
     
     q2 = prm['q2']
     gamma = prm['gamma']
@@ -76,6 +94,15 @@ def D_PPpr(P1,P2,prm):
 # Ranked distance from sample to sample
 def D_PPrk(P1,P2,prm):
     
+        # Drops minimum information
+    if 'min' in P1['search']:
+        P1 = P1.copy()
+        P1 = P1.loc[P1['search'] == ' max']
+
+    if 'min' in P2['search']:
+        P2 = P2.copy()
+        P2 = P2.loc[P2['search'] == ' max']
+    
     q2 = prm['q2']
     beta = prm['beta']
     
@@ -100,7 +127,16 @@ def D_PPrk(P1,P2,prm):
 
 # Distance from sample to sample with alpha optimization
 def D_PPalpha(P1,P2,prm, function = D_PP):
-    # Transformation to required format
+    
+        # Drops minimum information
+    if 'min' in P1['search']:
+        P1 = P1.copy()
+        P1 = P1.loc[P1['search'] == ' max']
+
+    if 'min' in P2['search']:
+        P2 = P2.copy()
+        P2 = P2.loc[P2['search'] == ' max']
+        
     # fun_D1 : Function for optimizing alpha
     def fun_alpha(alpha):
         P2_tmp = list(np.asarray(P2) - alpha)
@@ -122,19 +158,21 @@ def D_PPalpha(P1,P2,prm, function = D_PP):
 ################################################################
     
 # Distances matrix
-def distances_matrix(classess, list_peaks, prm, D = D_PP):
-    # Inicialize
-    distances = np.zeros(shape=(len(classess),len(classess)))
-    # Progress inicialize
+def distances_matrix(list_peaks, classess, prm, D = D_PP):
+    # Inicitialize
+    n = len(list_peaks)
+    distances = np.zeros(shape=(n,n))
+    
+    # Initialize counter
     idx = 1
     
     # Loop over all elements
-    n = len(classess)
     for i in range(n):
-        # Looop over all next elements
+        # Looop over all next elements including itself
         for j in range(i,n):
-            # Progress update
+                # Progress update
             print(str(idx) + '/' + str(int(n*(n-1)/2 + n)))
+            
             # Calculate distance
             dist = D(list_peaks[i],list_peaks[j],prm)
             # Save distance (Symmetric matrix)
@@ -142,13 +180,22 @@ def distances_matrix(classess, list_peaks, prm, D = D_PP):
             distances[j,i] = dist
             
             idx = idx + 1
-         
-    return pd.DataFrame(distances)
+    distances = pd.DataFrame(distances)
+    distances.columns = classess
+    return distances
 
-def distancesC_matrix(distances_matrix, classess):
-    df = pd.DataFrame(distances_matrix).copy()
+def distancesC_matrix(distance_matrix, classess):
+    
+    # Converts to dataframe
+    if not isinstance(distance_matrix, pd.DataFrame):
+        df = pd.DataFrame(distance_matrix).copy()
+    else:
+        df = distance_matrix.copy()
+        
+    # Sets classes
     df['classess'] = classess
     
+    # Mean by classess
     df = df.groupby(['classess']).mean()
                 
     return df.T
@@ -192,6 +239,13 @@ def KNN_predict(distances_matrix, classess, k):
 #################### ALPHA OPTIMIZATION ########################
 ################################################################
 
+def D_PPgroup(P, Pgroup, prm, D = D_PP):
+    out = []
+    for i in len(Pgroup):
+        out.append(D(P,PgrouP[i]))
+    
+    return out
+        
 
 
 ################################################################

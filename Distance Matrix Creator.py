@@ -21,7 +21,7 @@ paths = {
         # Path for folder with the training data
         'path_TrData': 'C:/Users/nicol/Desktop/Uniandes/2020-1 Investigacion/Training Data/TrainingData',
         # Path for already saved extreme points decodification.
-        'extremes' : ['list_extremes',1]
+        'extremes' : ['list_extremes',2]
         }
 # Changes current working directory
 os.chdir(paths['working_directory'])
@@ -31,12 +31,13 @@ os.chdir(paths['working_directory'])
 ################################################################
 
     # PreProcessing
-from PreProcessing import import_data_raw
 from PreProcessing import extremes_sample
+from PreProcessing import merge_extreme_information
 from PreProcessing import apply_to
 from PreProcessing import get_search
 
     # Saving
+from SaveLoadFunctions import import_data_raw
 from SaveLoadFunctions import save_extremes
 from SaveLoadFunctions import load_extremes
 
@@ -56,11 +57,11 @@ from PlotFunctions import plot_class_distances
 
 prm = {}
     # Minimum distance between peaks
-prm['delta'] = 1     
+prm['delta'] = 0.1     
     # First exponential parameter 
-prm['q1'] = -5          
+prm['q1'] =   -5
     # Second exponential parameter
-prm['q2'] = -0.5
+prm['q2'] = 3
     # Minimum number of peaks allowed
 prm['p_min'] = 3           
     # Maximum number of peaks allowed (0 if no maximum used)
@@ -70,9 +71,9 @@ prm['p_max'] = 0
     # D_PP : basic distance
     # D_PPrk : ranked distance 
     # D_PPpr : proportional distance
-dist_function = D_PP
+dist_function = D_PPrk
 
-# Ranked and Proportional distance use positive q2. Also
+# Ranked and Proportional distance use positive q2
 # Case ranked distance
 prm['beta'] = 0.9
 # Case proportional distance
@@ -87,20 +88,22 @@ do_plot = True
 
 # If file with extremes already exists uses it
 if os.path.isfile(paths['extremes'][0] + str(paths['extremes'][1]) + '.csv'):
-    list_extremes, classess = load_extremes(paths['extremes'][0] + str(paths['extremes'][1]))
+    list_extremes, classess, extremes_df = load_extremes(paths['extremes'][0] + str(paths['extremes'][1]))
 # Else loads data from raw files
 else:
     # Loads data from raw csv files
-    data , classess = import_data_raw(trPath = paths['path_TrData'] + str(paths['extremes'][1]), format_type = paths['extremes'][1])
+    data , classess, file_names, files_id = import_data_raw(trPath = paths['path_TrData'] + str(paths['extremes'][1]), format_type = paths['extremes'][1])
     
     # Get Information on extreme values
     list_extremes = apply_to(extremes_sample, data, other = None)
     
-    # Saves extremes information for future use
-    save_extremes(list_extremes, classess, paths['extremes'][0] + str(paths['extremes'][1]))
+    # Merges the above information in one table
+    extremes_df = merge_extreme_information(list_extremes, classess, files_id)
     
+    # Sves file for future use
+    extremes_df.to_csv(paths['extremes'][0] + str(paths['extremes'][1]) + '.csv')
 
-# Extracts Peak information
+# Extracts Peak informations
 list_peaks = apply_to(get_search,list_extremes, prog = False) 
 
 list_valleys = apply_to(get_search,list_extremes, prog = False, other ='min') 
@@ -111,7 +114,8 @@ list_valleys = apply_to(get_search,list_extremes, prog = False, other ='min')
 ###################### DISTANCES MATRIX ########################
 ################################################################
 
-# Naming of file
+# Naming of output file
+    # Optional string for aditional parameters
 optional = ''
 if dist_function == D_PPrk:
     optional += ' beta ' + str(prm['beta'])
@@ -120,14 +124,20 @@ if dist_function == D_PPpr:
 if prm['p_max'] != 0:
     optional += ' - ' + 'p_max ' + str(prm['p_max'])
 
+    # Name
 distM_name = 'DM' + str(paths['extremes'][1]) + ' - ' + dist_function.__name__ + optional + ' - p_min ' + str(prm['p_min']) + ' - delta ' + str(prm['delta']) + ' - q1 ' + str(prm['q1'] ) + ' - q2 ' + str(prm['q2']) + '.csv' 
                                 
 # If distances matrix exists then loads, otherwise creates it
 if os.path.isfile(distM_name):
     distances = pd.read_csv(distM_name)
+    distances = distances.drop(columns = [col for col in distances.columns if 'Unnamed' in col] )
+    
     classess = list(distances.columns)
+    classess = [cl.split('.')[0] for cl in classess]
+            
+    
 else:
-    # Filter samples with less than minimum number of peaks are omited
+    # Filter samples with less peaks than the minimum allowed
     tmp = range(len(classess))
     classess = [classess[i] for i in tmp if list_peaks[i].shape[0] >= prm['p_min']]
     list_peaks = [list_peaks[i]  for i in tmp if list_peaks[i].shape[0] >= prm['p_min']]
@@ -139,12 +149,11 @@ else:
                 list_peaks[i] = list_peaks[i].sort_values(by = ['value'], ascending = False)
                 list_peaks[i] = list_peaks[i].head(prm['p_max'])
 
+
     # Distances matrix
-    distances = distances_matrix(classess, list_peaks, prm, dist_function)
-    # Saves distances matrix
-    distances.columns = classess
-    
-    # Normalizes distances
+    distances = distances_matrix(list_peaks, classess, prm, dist_function)
+
+    # Normalizes distances: Maximum Distance becomes 1
     max_distance = max(distances.max())
     distances = distances.apply(lambda x : x/max_distance)
     

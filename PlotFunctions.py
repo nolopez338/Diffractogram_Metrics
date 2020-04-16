@@ -127,7 +127,7 @@ def plot_class_distances(distance_matrix, classess, folder_images = 'Images', un
     # Unique classess
     classess_unique = np.unique(np.array(classess))
         
-    # Creates Imgage
+    # Creates Image
     n_img = len(classess_unique)
     fig = fig = plt.figure(figsize= figure_size) 
 
@@ -177,13 +177,24 @@ def plot_class_distances(distance_matrix, classess, folder_images = 'Images', un
 #################### PLOT SAMPLES ##############################
 ################################################################
     
-def plot_all_samples(data,classess, folder_images = 'Samples'):
+def plot_all_samples(data, classess, titles, list_peaks = None, list_valleys = None, folder_images = 'Samples'):
+    if list_valleys is None:
+        list_valleys = [None]*len(data)
+    if list_peaks is None:
+        list_peaks = [None]*len(data)
+    
+    for i in len(data):
+        plot_sample(sample = data[i], name = titles[i], path = folder_images)
+        
+        
+        
+        
     return 1
     
 
 # Plots diffractogram sample with peaks and valleys
     # colors: color for
-def plot_sample(sample, name, path, peaks = None, valleys = None, colors = ['blue','red','green'], angle_zoom = None, angle_window = 4, save = True):
+def plot_sample(sample, name, path, peaks = None, valleys = None, colors = ['blue','red','green'], angle_zoom = None, angle_window = 4, save = False):
     
     # Full Window
     a_1 = 0
@@ -230,7 +241,7 @@ def plot_sample(sample, name, path, peaks = None, valleys = None, colors = ['blu
     
     fig.suptitle(name)
     
-    if save:
+    if not save:
         plt.show()
     else:
         plt.savefig(path + '\\' + name + '.png')

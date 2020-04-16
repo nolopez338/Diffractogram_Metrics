@@ -6,10 +6,53 @@ Objective: Functions for saving and loading data.
 import pandas as pd
 import os
 
+###################################################################
+#################### DATA IMPORT ##################################
+###################################################################
 
+def import_data_raw(trPath, format_type = 1):
+    # format_type
+        # 1 : TrainingData1
+        # 2 : TrainingData2
+    # List which contains the diffractogram data of each file
+    files_trData = []
+    # List which contains the titles of each file
+    files_classess = [] 
+    files_titles = []
+
+    # Gets all .csv files
+    for file in os.listdir(trPath):
+        if ".csv" in file:
+            files_trData.append(trPath + '\\' + file)
+            files_classess.append(file.split('_')[0])
+            files_titles.append(file.split('.csv')[0])
+        
+    # Loads files as data frames.
+    data = list()
+    
+    for f in files_trData:
+        # First Format types (TrainingData1)
+        if format_type == 1:
+            sample = pd.read_csv(f)
+            sample.columns = ['Angle','Intensity']
+        # Second Format types (TrainingData2)
+        elif format_type == 2:
+            sample = pd.read_csv(f, names = ['Angle','Intensity'], error_bad_lines = False) 
+            
+            # Selects index for new data Frame
+            start_index = list(sample.loc[sample['Angle'] == 'Angle'].index)[0] + 1
+            
+            sample = sample.iloc[start_index:,:]
+            sample = sample.astype('float')
+        data.append(sample)
+    
+    # Creates identifier for each sample
+    files_id = list(range(len(files_titles)))
+    
+    return data , files_classess, files_titles, files_id
     
 ################################################################
-#################### PRE PROCESSING ############################
+#################### EXTREMES ##################################
 ################################################################
 
 # Saves list_extremes in a csv file
@@ -31,21 +74,29 @@ def save_extremes(list_extremes, classess, name):
 def load_extremes(name):
     df = pd.read_csv(name + '.csv')
     list_extremes = []
-    list_ids = []
+    list_classess = []
     
+        # First column of data.
     angle_col = [i for i in range(len(df.columns)) if  df.columns[i] == 'Angle'][0]
     df = df.iloc[:,angle_col:]
     
     for sample in df['sample'].unique():
+        # Submatrix of only sample extremes
         df_tmp = df[df['sample'] == sample]
         df_tmp = df_tmp.drop(columns = ['sample'])
         
-        list_ids.append(df_tmp['class'].iloc[0])
+        # Saves class
+        list_classess.append(df_tmp['class'].iloc[0])
         df_tmp = df_tmp.drop(columns = ['class'])
         
         list_extremes.append(df_tmp)
         
-    return list_extremes, list_ids
+    return list_extremes, list_classess, df
+
+
+################################################################
+#################### DISTANCE MATRIX ###########################
+################################################################
 
 def load_distances_matrices(path = None):
     
@@ -59,11 +110,10 @@ def load_distances_matrices(path = None):
     files_titles = []
 
     # Gets all .csv distances matrix files
-    for r, d, f in os.walk(path_matrices):
-        for file in f:
-            if (("Distances Matrix" in file) or ('DM' in file)) and ('.csv' in file):
-                files.append(os.path.join(r, file))
-                files_titles.append(file)
+    for file in os.listdir(path_matrices):
+        if (("Distances Matrix" in file) or ('DM' in file)) and ('.csv' in file):
+            files.append(path_matrices + '\\' + file)
+            files_titles.append(file)
     
     data = []
     data_classess = []

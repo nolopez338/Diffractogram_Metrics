@@ -6,48 +6,10 @@ import numpy as np
 import pandas as pd
 import os
 
+
 ###################################################################
-#################### DATA IMPORT ##################################
+#################### SAMPLE MANIPULATION ##########################
 ###################################################################
-
-def import_data_raw(trPath, format_type = 1):
-    # format_type
-        # 1 : TrainingData1
-        # 2 : TrainingData2
-    # List which contains the diffractogram data of each file
-    files_trData = []
-    # List which contains the titles of each file
-    files_classess =[] 
-
-    # Gets all .csv files
-    for r, d, f in os.walk(trPath):
-        for file in f:
-            if ".csv" in file:
-                files_trData.append(os.path.join(r, file))
-                files_classess.append(file.split('_')[0])
-        
-    # Loads files as data frames.
-    data = list()
-    
-    for f in files_trData:
-        # First Format types (TrainingData1)
-        if format_type == 1:
-            sample = pd.read_csv(f)
-            sample.columns = ['Angle','Intensity']
-        # Second Format types (TrainingData2)
-        elif format_type == 2:
-            sample = pd.read_csv(f, names = ['Angle','Intensity'], error_bad_lines = False) 
-            
-            # Selects index for new data Frame
-            start_index = list(sample.loc[sample['Angle'] == 'Angle'].index)[0] + 1
-            
-            sample = sample.iloc[start_index:,:]
-            sample = sample.astype('float')
-        data.append(sample)
-    
-    
-    return data , files_classess
-
 
 # Applies funtion constructed to work con sample on list of samples.
 def apply_to(sample_fun, data, prog = True, other = None):
@@ -73,7 +35,7 @@ def apply_to(sample_fun, data, prog = True, other = None):
 
 # Finds index of an angle in a given sample
         # Bisection method
-def find_angle(angle, sample, epsilon = 0.2):
+def find_angle(sample, angle, epsilon = 0.2):
     # Initialize
     a_n = sample.shape[0] - 1
     
@@ -100,7 +62,7 @@ def find_angle(angle, sample, epsilon = 0.2):
     return idx
         
 ###################################################################
-#################### PEAK MANIPULATION ############################
+#################### EXTREMES MANIPULATION ########################
 ###################################################################
 # Creates diferential sample out of the sample
     # sample : two columns of angles and intensities
@@ -112,21 +74,22 @@ def differencial_sample(sample):
     
 # Get extreme values (max and min) out of sample
     # sample : two columns of angles and intensities
-def extremes_sample(sample, prop_self = 1/2, prop_dif = 1/100, min_delta = 0.4):
-    # Treshold
-    # dif_sampl = differencial_sample(sample)
+    # prop_self: Proportion from highest value
+    # prop_dif: fixes proportion
+def extremes_sample(sample, prop_self = 1/2, prop_dif = 1/80, min_delta = 0.4):
     
     prop_max = np.max(np.absolute(sample.iloc[:,1]))*prop_dif
     
     # Initialize
-    extreme = sample.iloc[0,1].copy()
+ #   extreme = sample.iloc[0,1].copy()
+    extreme = sample.iloc[0,1]
     n_extreme = 0
     search = 'min'
     
     # Searches for extreme points
     sample_extremes = list()
     for i in range(1,len(sample)):
-        actual = sample.iloc[i,1].copy()
+        actual = sample.iloc[i,1]
         
         # Replaces when finds more extreme value
         if search == 'min' and actual < extreme:
@@ -179,7 +142,26 @@ def extremes_sample(sample, prop_self = 1/2, prop_dif = 1/100, min_delta = 0.4):
     sample_extremes = sample_extremes.drop(drop_i)
     # Re index
     sample_extremes.reindex(index = range(sample_extremes.shape[0]))
-    return(sample_extremes)
+    
+    return sample_extremes
+
+
+# Merges extremes list, classess and id in a single Dataframe
+def merge_extreme_information(list_extremes, classess, list_id):
+    df = pd.DataFrame()
+    
+    for i in range(len(list_extremes)):
+        sample_extremes = list_extremes[i]
+        # sample_extremes = pd.DataFrame(sample_extremes)
+        
+        sample_extremes['sample'] = i + 1
+        sample_extremes['class'] = classess[i]
+        sample_extremes['id'] = list_id[i] + 1
+
+        
+        df = pd.concat([df,sample_extremes], ignore_index = True, sort = True)
+        
+    return df
     
 # From a result from the extremes_sample function we extract the search option
     # either max or min
@@ -187,8 +169,27 @@ def get_search(sample_extremes, search = 'max'):
     
     out = sample_extremes[sample_extremes['search'] == search]
     return(out)
-    
 
+# Merges list extremes in current w
+def merge_list_extremes(path = None):
+    if path is None:
+        path = os.getcwd()
+        # Gets all .csv files
+        files = []
+    
+    for file in os.listdir(path):
+        if (".csv" in file) and ('list_extremes' in file):
+            files.append(file)
+    
+    list_extremes = []
+        
+    for file in files:
+        f = file.split('list_extremes')[1]
+        f = f.split('.csv')[0]
+        if len(f) == 1:
+            list_extremes.append(pd.read_csv(file))
+        
+    
 ###################################################################
 #################### DISTANCES MATRICES MANIPULATION #############
 ###################################################################
