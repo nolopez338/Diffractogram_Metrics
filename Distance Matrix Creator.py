@@ -20,8 +20,10 @@ paths = {
         'working_directory' : "C:/Users/nicol/Desktop/Uniandes/2020-1 Investigacion/Codes",
         # Path for folder with the training data
         'path_TrData': 'C:/Users/nicol/Desktop/Uniandes/2020-1 Investigacion/Training Data/TrainingData',
-        # Path for already saved extreme points decodification.
-        'extremes' : ['list_extremes',2]
+        # Exterme information to be used
+            # 0 : All data sets
+            # n != 0 : data set n
+        'extremes' : ['list_extremes', '' ]
         }
 # Changes current working directory
 os.chdir(paths['working_directory'])
@@ -38,7 +40,6 @@ from PreProcessing import get_search
 
     # Saving
 from SaveLoadFunctions import import_data_raw
-from SaveLoadFunctions import save_extremes
 from SaveLoadFunctions import load_extremes
 
     # Distance Functions
@@ -61,7 +62,7 @@ prm['delta'] = 0.1
     # First exponential parameter 
 prm['q1'] =   -5
     # Second exponential parameter
-prm['q2'] = 3
+prm['q2'] = 0.5
     # Minimum number of peaks allowed
 prm['p_min'] = 3           
     # Maximum number of peaks allowed (0 if no maximum used)
@@ -71,7 +72,7 @@ prm['p_max'] = 0
     # D_PP : basic distance
     # D_PPrk : ranked distance 
     # D_PPpr : proportional distance
-dist_function = D_PPrk
+dist_function = D_PP
 
 # Ranked and Proportional distance use positive q2
 # Case ranked distance

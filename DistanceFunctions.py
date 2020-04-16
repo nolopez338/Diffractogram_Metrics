@@ -242,9 +242,9 @@ def KNN_predict(distances_matrix, classess, k):
 def D_PPgroup(P, Pgroup, prm, D = D_PP):
     out = []
     for i in len(Pgroup):
-        out.append(D(P,PgrouP[i]))
+        out.append(D(P,Pgroup[i],prm))
     
-    return out
+    return np.array(out).mean(), out
         
 
 

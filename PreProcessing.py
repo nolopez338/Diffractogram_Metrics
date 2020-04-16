@@ -171,25 +171,30 @@ def get_search(sample_extremes, search = 'max'):
     return(out)
 
 # Merges list extremes in current w
-def merge_list_extremes(path = None):
+def merge_extremes_dataframes(path = None):
+    name = 'list_extremes'
+    
     if path is None:
         path = os.getcwd()
         # Gets all .csv files
         files = []
     
+    # Selects list extremes (only the numbered ones)
     for file in os.listdir(path):
-        if (".csv" in file) and ('list_extremes' in file):
-            files.append(file)
+        if (".csv" in file) and (name in file):
+            f = file.split(name)[1]
+            f = f.split('.csv')[0]
+            if f.isdigit():
+                files.append(file)
     
-    list_extremes = []
-        
+    df = pd.DataFrame()
+    # Merges dataframes
     for file in files:
-        f = file.split('list_extremes')[1]
-        f = f.split('.csv')[0]
-        if len(f) == 1:
-            list_extremes.append(pd.read_csv(file))
-        
-    
+            sample_extremes = pd.read_csv(file)
+            df = pd.concat([df,sample_extremes], ignore_index = True, sort = True) 
+            
+    df.to_csv(name + '.csv')
+
 ###################################################################
 #################### DISTANCES MATRICES MANIPULATION #############
 ###################################################################

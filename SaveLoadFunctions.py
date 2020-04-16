@@ -48,6 +48,7 @@ def import_data_raw(trPath, format_type = 1):
     
     # Creates identifier for each sample
     files_id = list(range(len(files_titles)))
+    files_id = [str(format_type) + '-' + str(f_id) for f_id in files_id]
     
     return data , files_classess, files_titles, files_id
     
