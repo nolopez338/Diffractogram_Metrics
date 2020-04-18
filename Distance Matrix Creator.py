@@ -1,184 +1,261 @@
 """
 Autor: Nicolas Orlando Lopez Cuellar
-Objective: Create distances matrix for a set of given parameters
+Objetivo: Peak Metrics
 """
 
 ################################################################
-###################### IMPORT MODULES ##########################
+###################### IMOPRT MODULES ##########################
 ################################################################
 
-import os
+import numpy as np
 import pandas as pd
 
-################################################################
-###################### INPUT VARIABLES #########################
-################################################################
-
-#### Adress for inputs (MODIFY FOR EACH COMPUTER)
-paths = {
-        # Where the functions will be loaded from
-        'working_directory' : "C:/Users/nicol/Desktop/Uniandes/2020-1 Investigacion/Codes",
-        # Path for folder with the training data
-        'path_TrData': 'C:/Users/nicol/Desktop/Uniandes/2020-1 Investigacion/Training Data/TrainingData',
-        # Exterme information to be used
-            # 0 : All data sets
-            # n != 0 : data set n
-        'extremes' : ['list_extremes', '' ]
-        }
-# Changes current working directory
-os.chdir(paths['working_directory'])
+from scipy.optimize import minimize
+from statistics import mode
 
 ################################################################
-###################### INPORT ESPECIAL MODULES #################
+#################### PEAK METRIC ###############################
 ################################################################
-
-    # PreProcessing
-from PreProcessing import extremes_sample
-from PreProcessing import merge_extreme_information
-from PreProcessing import apply_to
-from PreProcessing import get_search
-
-    # Saving
-from SaveLoadFunctions import import_data_raw
-from SaveLoadFunctions import load_extremes
-
-    # Distance Functions
-from DistanceFunctions import distances_matrix
-from DistanceFunctions import D_PP
-from DistanceFunctions import D_PPrk
-from DistanceFunctions import D_PPpr
-
-    # Plotting functions
-from PlotFunctions import plot_projections
-from PlotFunctions import plot_class_distances
-
-################################################################
-###################### PARAMETERS ##############################
-################################################################
-
-prm = {}
-    # Minimum distance between peaks
-prm['delta'] = 0.1     
-    # First exponential parameter 
-prm['q1'] =   -5
-    # Second exponential parameter
-prm['q2'] = 0.5
-    # Minimum number of peaks allowed
-prm['p_min'] = 3           
-    # Maximum number of peaks allowed (0 if no maximum used)
-prm['p_max'] = 0
-
-# Distance function to be used
-    # D_PP : basic distance
-    # D_PPrk : ranked distance 
-    # D_PPpr : proportional distance
-dist_function = D_PP
-
-# Ranked and Proportional distance use positive q2
-# Case ranked distance
-prm['beta'] = 0.9
-# Case proportional distance
-prm['gamma'] = 2
-
-do_plot = True
-
-################################################################
-###################### IMPORT DATA #############################
-################################################################
-# Imports data in order to create distances matrix.
-
-# If file with extremes already exists uses it
-if os.path.isfile(paths['extremes'][0] + str(paths['extremes'][1]) + '.csv'):
-    list_extremes, classess, extremes_df = load_extremes(paths['extremes'][0] + str(paths['extremes'][1]))
-# Else loads data from raw files
-else:
-    # Loads data from raw csv files
-    data , classess, file_names, files_id = import_data_raw(trPath = paths['path_TrData'] + str(paths['extremes'][1]), format_type = paths['extremes'][1])
+# Distance from peak to sample
+def d_pP(p,P,prm):
+    q1 = prm['q1']
+    delta = prm['delta']
     
-    # Get Information on extreme values
-    list_extremes = apply_to(extremes_sample, data, other = None)
+    out = 0
+    for j in range(P.shape[0]):
+        pj = P.iloc[j]
+        # Distance measure
+        out += (1/np.asarray([np.abs(p['Angle'] - pj['Angle']), delta]).max())**(q1)
+    out = 1/out**(1/q1)
+    return out
     
-    # Merges the above information in one table
-    extremes_df = merge_extreme_information(list_extremes, classess, files_id)
+# Distance from sample to sample
+def D_PP(P1,P2,prm):
     
-    # Sves file for future use
-    extremes_df.to_csv(paths['extremes'][0] + str(paths['extremes'][1]) + '.csv')
+    # Drops minimum information
+    if 'min' in P1['search']:
+        P1 = P1.copy()
+        P1 = P1.loc[P1['search'] == ' max']
 
-# Extracts Peak informations
-list_peaks = apply_to(get_search,list_extremes, prog = False) 
+    if 'min' in P2['search']:
+        P2 = P2.copy()
+        P2 = P2.loc[P2['search'] == ' max']
 
-list_valleys = apply_to(get_search,list_extremes, prog = False, other ='min') 
+    q2 = prm['q2']
+    # First sample distance
+    out1 = 0
+    for i in range(len(P1)):
+        out1 += np.abs((d_pP(P1.iloc[i], P2, prm)))**(q2) 
+    out1 **= (1/q2)
+    # Second sample distance
+    out2 = 0
+    for i in range(len(P2)):
+        out2 += np.abs(d_pP(P2.iloc[i], P1, prm))**(q2) 
+    out2 **= (1/q2)
+    # Total
+    out = out1/(len(P1)**(1/q2)) + out2/(len(P2)**(1/q2))
+    
+    return out
 
-# Normalizes so that maximum peak has intensity 1.
+# Proportional distance from sample to sample
+def D_PPpr(P1,P2,prm):
+    
+        # Drops minimum information
+    if 'min' in P1['search']:
+        P1 = P1.copy()
+        P1 = P1.loc[P1['search'] == ' max']
+
+    if 'min' in P2['search']:
+        P2 = P2.copy()
+        P2 = P2.loc[P2['search'] == ' max']
+    
+    q2 = prm['q2']
+    gamma = prm['gamma']
+    
+    # Get maximum intensity
+    max1 = P1.max(axis= 0)['Intensity']
+    max2 = P2.max(axis= 0)['Intensity']
+    
+    # First sample distance
+    out1 = 0
+    for i in range(len(P1)):
+        out1 += ((P1.iloc[i]['Intensity']/max1)**gamma)*np.abs((d_pP(P1.iloc[i], P2, prm)))**(q2) 
+    out1 **= (1/q2)
+    # Second sample distance
+    out2 = 0
+    for i in range(len(P2)):
+        out2 += ((P2.iloc[i]['Intensity']/max2)**gamma)*np.abs(d_pP(P2.iloc[i], P1, prm))**(q2) 
+    out2 **= (1/q2)
+    # Total
+    out = out1/(len(P1)**(1/q2)) + out2/(len(P2)**(1/q2))
+    
+    return(out)
+    
+# Ranked distance from sample to sample
+def D_PPrk(P1,P2,prm):
+    
+        # Drops minimum information
+    if 'min' in P1['search']:
+        P1 = P1.copy()
+        P1 = P1.loc[P1['search'] == ' max']
+
+    if 'min' in P2['search']:
+        P2 = P2.copy()
+        P2 = P2.loc[P2['search'] == ' max']
+    
+    q2 = prm['q2']
+    beta = prm['beta']
+    
+    # Organize samples by intensity
+    P1 = P1.sort_values(by = ['Intensity'], ascending = False)
+    P2 = P2.sort_values(by = ['Intensity'], ascending = False)
+
+    # First sample distance
+    out1 = 0
+    for i in range(len(P1)):
+        out1 += beta**i*(np.abs((d_pP(P1.iloc[i], P2, prm)))**(q2))
+    out1 **= (1/q2)
+    # Second sample distance
+    out2 = 0
+    for i in range(len(P2)):
+        out2 += beta**i*(np.abs((d_pP(P2.iloc[i], P1, prm)))**(q2))
+    out2 **= (1/q2)
+    # Total
+    out = out1/(len(P1)**(1/q2)) + out2/(len(P2)**(1/q2))
+    
+    return(out)
+
+# Distance from sample to sample with alpha optimization
+def D_PPalpha(P1,P2,prm, function = D_PP):
+    
+        # Drops minimum information
+    if 'min' in P1['search']:
+        P1 = P1.copy()
+        P1 = P1.loc[P1['search'] == ' max']
+
+    if 'min' in P2['search']:
+        P2 = P2.copy()
+        P2 = P2.loc[P2['search'] == ' max']
+        
+    # fun_D1 : Function for optimizing alpha
+    def fun_alpha(alpha):
+        P2_tmp = list(np.asarray(P2) - alpha)
+        out = function(P1, P2_tmp, prm)
+        return out
+    
+    alpha0 = 0
+    
+    res = minimize(fun_alpha, alpha0, method='nelder-mead',
+                   options={'xtol': 1e-8, 'disp': True})
+    
+    distance = res['fun']
+    alpha = res['x'][0]
+    
+    return {'Distance': distance , 'alpha': alpha}
 
 ################################################################
-###################### DISTANCES MATRIX ########################
+#################### DISTANCES MATRIX ##########################
 ################################################################
-
-# Naming of output file
-    # Optional string for aditional parameters
-optional = ''
-if dist_function == D_PPrk:
-    optional += ' beta ' + str(prm['beta'])
-if dist_function == D_PPpr:
-    optional += ' gamma ' + str(prm['gamma'])
-if prm['p_max'] != 0:
-    optional += ' - ' + 'p_max ' + str(prm['p_max'])
-
-    # Name
-distM_name = 'DM' + str(paths['extremes'][1]) + ' - ' + dist_function.__name__ + optional + ' - p_min ' + str(prm['p_min']) + ' - delta ' + str(prm['delta']) + ' - q1 ' + str(prm['q1'] ) + ' - q2 ' + str(prm['q2']) + '.csv' 
-                                
-# If distances matrix exists then loads, otherwise creates it
-if os.path.isfile(distM_name):
-    distances = pd.read_csv(distM_name)
-    distances = distances.drop(columns = [col for col in distances.columns if 'Unnamed' in col] )
     
-    classess = list(distances.columns)
-    classess = [cl.split('.')[0] for cl in classess]
+# Distances matrix
+def distances_matrix(list_peaks, classess, prm, D = D_PP):
+    # Inicitialize
+    n = len(list_peaks)
+    distances = np.zeros(shape=(n,n))
+    
+    # Initialize counter
+    idx = 1
+    
+    # Loop over all elements
+    for i in range(n):
+        # Looop over all next elements including itself
+        for j in range(i,n):
+                # Progress update
+            print(str(idx) + '/' + str(int(n*(n-1)/2 + n)))
             
-    
-else:
-    # Filter samples with less peaks than the minimum allowed
-    tmp = range(len(classess))
-    classess = [classess[i] for i in tmp if list_peaks[i].shape[0] >= prm['p_min']]
-    list_peaks = [list_peaks[i]  for i in tmp if list_peaks[i].shape[0] >= prm['p_min']]
-    
-    # Filter irrelevant peaks (when p_max != 0)
-    if prm['p_max'] != 0:
-        for i in range(len(list_peaks)):
-            if list_peaks[i].shape[0] > prm['p_max']:
-                list_peaks[i] = list_peaks[i].sort_values(by = ['value'], ascending = False)
-                list_peaks[i] = list_peaks[i].head(prm['p_max'])
+            # Calculate distance
+            dist = D(list_peaks[i],list_peaks[j],prm)
+            # Save distance (Symmetric matrix)
+            distances[i,j] = dist
+            distances[j,i] = dist
+            
+            idx = idx + 1
+    distances = pd.DataFrame(distances)
+    distances.columns = classess
+    return distances
 
-
-    # Distances matrix
-    distances = distances_matrix(list_peaks, classess, prm, dist_function)
-
-    # Normalizes distances: Maximum Distance becomes 1
-    max_distance = max(distances.max())
-    distances = distances.apply(lambda x : x/max_distance)
+def distancesC_matrix(distance_matrix, classess):
     
+    # Converts to dataframe
+    if not isinstance(distance_matrix, pd.DataFrame):
+        df = pd.DataFrame(distance_matrix).copy()
+    else:
+        df = distance_matrix.copy()
+        
+    # Sets classes
+    df['classess'] = classess
     
-    distances.to_csv(distM_name)    
+    # Mean by classess
+    df = df.groupby(['classess']).mean()
+                
+    return df.T
 
 
 ################################################################
-###################### DISTANCES MATRIX ########################
+#################### RESULTS GATHERING #########################
+################################################################
+    
+
+def KNN_predict(distances_matrix, classess, k):
+    predictions = []
+    # Creates prediction for every row
+    for i in range(distances_matrix.shape[0]):
+        # Select row
+        tmp_dist = list(distances_matrix[i])
+        # Create classess copy 
+        tmp_class = classess.copy()
+        
+        # Eliminates self from distance list
+        tmp_dist.pop(i)
+        tmp_class.pop(i)
+        
+        # Finds nearest distances
+        k_nearest = np.sort(tmp_dist)
+        if k == 1:
+            k_nearest = [k_nearest[0]]
+        else:
+            k_nearest = k_nearest[0:k]
+        
+        # Sves classess from elements
+        k_classes = [classess[j] for j in range(len(tmp_dist)) if tmp_dist[j] in k_nearest]
+        predictions.append(mode(k_classes))
+        
+    return predictions
+
+
+
+    
+################################################################
+#################### ALPHA OPTIMIZATION ########################
 ################################################################
 
-if do_plot:
-    plot_projections(distances, classess, distM_name.split('.csv')[0])
-    plot_class_distances(distances, classess, distM_name.split('.csv')[0])
+def D_PPgroup(P, Pgroup, prm, D = D_PP):
+    out = []
+    for i in len(Pgroup):
+        out.append(D(P,Pgroup[i],prm))
+    
+    return np.array(out).mean(), out
 
-
-
-
-
-
-
-
-
-
-
-
-
+################################################################
+#################### LOSS FUNCTION #############################
+################################################################
+    
+        
+    
+    
+    
+    
+    
+    
+    
+    
