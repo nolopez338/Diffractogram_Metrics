@@ -13,6 +13,10 @@ import pandas as pd
 from scipy.optimize import minimize
 from statistics import mode
 
+# Progress bar modules
+import time
+import progressbar
+
 ################################################################
 #################### PEAK METRIC ###############################
 ################################################################
@@ -25,14 +29,26 @@ def d_pP(p,P,prm):
     for j in range(P.shape[0]):
         pj = P.iloc[j]
         # Distance measure
-        out += (1/np.asarray([np.abs(p['Angle'] - pj['Angle']), delta]).max())**(q1)
-    out = 1/out**(1/q1)
+        out += (np.asarray([np.abs(p['Angle'] - pj['Angle']), delta]).max())**(q1)
+    
+    out = out**(1/q1)
+    return out
+
+def d_pP_info(p,P,prm):
+    delta = prm['delta']
+    
+    out = []
+    for j in range(P.shape[0]):
+        pj = P.iloc[j]
+        # Distance measure
+        out.append(1/np.asarray([np.abs(p['Angle'] - pj['Angle']), delta]).max())
+    out
     return out
     
 # Distance from sample to sample
 def D_PP(P1,P2,prm):
     
-    # Drops minimum information
+    # Drops information not needed.
     if 'min' in P1['search']:
         P1 = P1.copy()
         P1 = P1.loc[P1['search'] == ' max']
@@ -40,7 +56,8 @@ def D_PP(P1,P2,prm):
     if 'min' in P2['search']:
         P2 = P2.copy()
         P2 = P2.loc[P2['search'] == ' max']
-
+    
+    # Calculates distance directly
     q2 = prm['q2']
     # First sample distance
     out1 = 0
@@ -54,6 +71,33 @@ def D_PP(P1,P2,prm):
     out2 **= (1/q2)
     # Total
     out = out1/(len(P1)**(1/q2)) + out2/(len(P2)**(1/q2))
+        
+    return out
+
+
+# Information on distance
+def D_PP_info(P1,P2,prm):
+        # Drops information not needed.
+    if 'min' in P1['search']:
+        P1 = P1.copy()
+        P1 = P1.loc[P1['search'] == ' max']
+
+    if 'min' in P2['search']:
+        P2 = P2.copy()
+        P2 = P2.loc[P2['search'] == ' max']
+        
+      # Add information regarding distance
+    # First sample distance
+    out1 = []
+    for i in range(len(P1)):
+        out1.append( np.abs((d_pP(P1.iloc[i], P2, prm))) )
+    
+    # Second sample distance
+    out2 = []
+    for i in range(len(P2)):
+        out2.append( np.abs(d_pP(P2.iloc[i], P1, prm)) )
+    
+    out = [out1,out2]
     
     return out
 
@@ -184,7 +228,7 @@ def distances_matrix(list_peaks, classess, prm, D = D_PP):
     distances.columns = classess
     return distances
 
-def distancesC_matrix(distance_matrix, classess):
+def distances_centroids_matrix(distance_matrix, classess):
     
     # Converts to dataframe
     if not isinstance(distance_matrix, pd.DataFrame):

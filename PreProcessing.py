@@ -7,9 +7,9 @@ import pandas as pd
 import os
 
 
-###################################################################
-#################### SAMPLE MANIPULATION ##########################
-###################################################################
+###############################################################################
+#################### SAMPLE MANIPULATION ######################################
+###############################################################################
 
 # Applies funtion constructed to work con sample on list of samples.
 def apply_to(sample_fun, data, prog = True, other = None):
@@ -61,9 +61,9 @@ def find_angle(sample, angle, epsilon = 0.2):
         
     return idx
         
-###################################################################
-#################### EXTREMES MANIPULATION ########################
-###################################################################
+###############################################################################
+#################### EXTREMES MANIPULATION ####################################
+###############################################################################
 # Creates diferential sample out of the sample
     # sample : two columns of angles and intensities
 def differencial_sample(sample):
@@ -171,14 +171,14 @@ def get_search(sample_extremes, search = 'max'):
     return(out)
 
 # Merges list extremes in current w
-def merge_extremes_dataframes(path = None):
-    name = 'list_extremes'
+def merge_extremes_dataframes(path = None, name = 'list_extremes'):
     
     if path is None:
         path = os.getcwd()
-        # Gets all .csv files
-        files = []
-    
+        
+    # Gets all .csv files
+    files = []
+
     # Selects list extremes (only the numbered ones)
     for file in os.listdir(path):
         if (".csv" in file) and (name in file):
@@ -194,10 +194,11 @@ def merge_extremes_dataframes(path = None):
             df = pd.concat([df,sample_extremes], ignore_index = True, sort = True) 
             
     df.to_csv(name + '.csv')
+    
 
-###################################################################
-#################### DISTANCES MATRICES MANIPULATION #############
-###################################################################
+###############################################################################
+#################### DISTANCES MATRICES MANIPULATION ##########################
+###############################################################################
     
 # Plot projections for a specific distance matrix
 def eliminate_unwanted(distance_matrix, classess, unwanted = ['Patata']):
@@ -216,6 +217,22 @@ def eliminate_unwanted(distance_matrix, classess, unwanted = ['Patata']):
         classess = [cl for cl in classess if not eliminate in cl]
     
     return distance_matrix, classess
+
+
+###############################################################################
+#################### FILES MANIPULATION #######################################
+###############################################################################
+    
+def create_folder(folder_name):
+    path0 = folder_name
+    path = path0
+    idx = 0
+    while os.path.isdir(path):
+        idx += 1
+        path = path0 + str(idx)
+    os.mkdir(path)
+
+
 
 
 

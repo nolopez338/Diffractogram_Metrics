@@ -7,12 +7,15 @@ Objective: Create distances matrix for a set of given parameters
 ###################### IMPORT MODULES ##########################
 ################################################################
 
+# Basic modules
 import os
 import pandas as pd
+import sys
 
 ################################################################
 ###################### INPUT VARIABLES #########################
 ################################################################
+
 
 #### Adress for inputs (MODIFY FOR EACH COMPUTER)
 paths = {
@@ -25,8 +28,19 @@ paths = {
             # n != 0 : data set n
         'extremes' : ['list_extremes', '' ]
         }
+
+manual_path = False
 # Changes current working directory
-os.chdir(paths['working_directory'])
+if manual_path:
+    os.chdir(paths['working_directory'])
+else:
+        # colab
+    tmp = 1
+        # Current computer
+# =============================================================================
+#     os.chdir(os.path.dirname(sys.argv[0]))
+# =============================================================================
+
 
 ################################################################
 ###################### INPORT ESPECIAL MODULES #################
@@ -37,6 +51,7 @@ from PreProcessing import extremes_sample
 from PreProcessing import merge_extreme_information
 from PreProcessing import apply_to
 from PreProcessing import get_search
+from PreProcessing import create_folder
 
     # Saving
 from SaveLoadFunctions import import_data_raw
@@ -44,6 +59,7 @@ from SaveLoadFunctions import load_extremes
 
     # Distance Functions
 from DistanceFunctions import distances_matrix
+from DistanceFunctions import distances_centroids_matrix
 from DistanceFunctions import D_PP
 from DistanceFunctions import D_PPrk
 from DistanceFunctions import D_PPpr
@@ -53,16 +69,16 @@ from PlotFunctions import plot_projections
 from PlotFunctions import plot_class_distances
 
 ################################################################
-###################### PARAMETERS ##############################
+###################### BASIC PARAMETERS ########################
 ################################################################
 
 prm = {}
     # Minimum distance between peaks
-prm['delta'] = 0.001     
+prm['delta'] = 0.5
     # First exponential parameter 
 prm['q1'] =   -5
     # Second exponential parameter
-prm['q2'] = 5
+prm['q2'] = -0.5
     # Minimum number of peaks allowed
 prm['p_min'] = 3           
     # Maximum number of peaks allowed (0 if no maximum used)
@@ -72,7 +88,7 @@ prm['p_max'] = 0
     # D_PP : basic distance
     # D_PPrk : ranked distance 
     # D_PPpr : proportional distance
-dist_function = D_PPrk
+dist_function = D_PP
 3
 # Ranked and Proportional distance use positive q2
 # Case ranked distance
@@ -127,8 +143,10 @@ if prm['p_max'] != 0:
     optional += ' - ' + 'p_max ' + str(prm['p_max'])
 
     # Name
-distM_name = 'DM' + str(paths['extremes'][1]) + ' - ' + dist_function.__name__ + optional + ' - p_min ' + str(prm['p_min']) + ' - delta ' + str(prm['delta']) + ' - q1 ' + str(prm['q1'] ) + ' - q2 ' + str(prm['q2']) + '.csv' 
-                                
+tmp = str(paths['extremes'][1]) + ' - ' + dist_function.__name__ + optional + ' - p_min ' + str(prm['p_min']) + ' - delta ' + str(prm['delta']) + ' - q1 ' + str(prm['q1'] ) + ' - q2 ' + str(prm['q2']) + '.csv' 
+distM_name = 'DM ' + tmp
+distCM_name = 'DCM '   + tmp       
+                      
 # If distances matrix exists then loads, otherwise creates it
 if os.path.isfile(distM_name):
     distances = pd.read_csv(distM_name)
@@ -158,9 +176,11 @@ else:
     # Normalizes distances: Maximum Distance becomes 1
     max_distance = max(distances.max())
     distances = distances.apply(lambda x : x/max_distance)
-    
-    
-    distances.to_csv(distM_name)    
+
+distances_centroids = distances_centroids_matrix(distances, classess)
+
+distances_centroids.to_csv(distCM_name)
+distances.to_csv(distM_name)    
 
 
 ################################################################

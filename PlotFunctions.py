@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 from PreProcessing import eliminate_unwanted
 from PreProcessing import find_angle
 
-from DistanceFunctions import distancesC_matrix
+from DistanceFunctions import distances_centroids_matrix
 
 from SaveLoadFunctions import load_distances_matrices
 
@@ -62,7 +62,7 @@ def plot_projections(distance_matrix, classess, folder_images = 'Images', unwant
     distance_matrix, classess = eliminate_unwanted(distance_matrix, classess, unwanted)
         
     # Get centroid distance matrix
-    distances_centroids = distancesC_matrix(distance_matrix,classess)
+    distances_centroids = distances_centroids_matrix(distance_matrix,classess)
 
     # Unique classess
     classess_unique = np.unique(np.array(classess))
@@ -122,7 +122,7 @@ def plot_class_distances(distance_matrix, classess, folder_images = 'Images', un
     distance_matrix, classess = eliminate_unwanted(distance_matrix, classess, unwanted)
         
     # Get centroid distance matrix
-    distances_centroids = distancesC_matrix(distance_matrix,classess)
+    distances_centroids = distances_centroids_matrix(distance_matrix,classess)
 
     # Unique classess
     classess_unique = np.unique(np.array(classess))
@@ -194,7 +194,11 @@ def plot_all_samples(data, classess, titles, list_peaks = None, list_valleys = N
 
 # Plots diffractogram sample with peaks and valleys
     # colors: color for
-def plot_sample(sample, name, path, peaks = None, valleys = None, colors = ['blue','red','green'], angle_zoom = None, angle_window = 4, save = False):
+def plot_sample(sample, name = None, path = None , peaks = None, valleys = None, colors = ['blue','red','green'], angle_zoom = None, angle_window = 4, save = False):
+    
+    # Automatic folder creation
+    if path is None:
+        path = 'Img'
     
     # Full Window
     a_1 = 0

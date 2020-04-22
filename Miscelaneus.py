@@ -32,7 +32,7 @@ os.chdir(paths['working_directory'])
 ################################################################
 
 from SaveLoadFunctions import load_distances_matrices
-from DistanceFunctions import distancesC_matrix
+from DistanceFunctions import distances_centroids_matrix
 
 data, titles, data_classess = load_distances_matrices()
 
@@ -40,7 +40,7 @@ distance_matrix = data[0]
 classess = data_classess[0]
 
 # Get centroid distance matrix
-distances_centroids = distancesC_matrix(distance_matrix,classess)
+distances_centroids = distances_centroids_matrix(distance_matrix,classess)
 
 
 ################################################################
@@ -88,5 +88,45 @@ plot_sample(sample, 'test' ,os.getcwd() , peaks = peaks, valleys = valleys, colo
 
 find_angle(36,sample)
 find_angle(36.1,sample)
+
+###########################################################
+
+P1 = list_peaks[0]
+P2 = list_peaks[1]
+
+out = D_PP(list_peaks[0],list_peaks[1], prm)
+
+out0 = D_PP(list_peaks[0],list_peaks[0], prm)
+out1 = D_PP(list_peaks[1],list_peaks[1], prm)
+
+#########################################3
+p = P1.iloc[0]
+P = P1
+
+d_pP(p,P,prm)
+
+
+
+d_pP_info(p, P, prm)
+
+
+
+
+import pylab
+fig = pylab.figure()
+figlegend = pylab.figure(figsize=(3,2))
+ax = fig.add_subplot(111)
+lines = ax.plot(range(10), pylab.randn(10), range(10), pylab.randn(10))
+figlegend.legend(lines, ('one', 'two'), 'center')
+fig.show()
+figlegend.show()
+figlegend.savefig('legend.png')
+
+
+
+
+
+
+
 
 
