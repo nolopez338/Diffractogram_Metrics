@@ -1,7 +1,4 @@
-"""
-Autor: Nicolas Orlando Lopez Cuellar
-Objective: Create distances matrix for a set of given parameters
-"""
+
 
 ################################################################
 ###################### IMPORT MODULES ##########################
