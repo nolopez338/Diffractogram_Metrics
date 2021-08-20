@@ -11,7 +11,7 @@ import os
 #################### SAMPLE MANIPULATION ######################################
 ###############################################################################
 
-# Applies funtion constructed to work con sample on list of samples.
+# Applies funtion constructed to work on sample on list of samples.
 def apply_to(sample_fun, data, prog = True, other = None):
     # Progress
     if prog:
